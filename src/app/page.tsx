@@ -1,76 +1,130 @@
 "use client";
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Column from "@/components/Column";
-import { v4 as uuvid4 } from "uuid";
-import add from "@/../public/ic_add.svg";
-import Image from "next/image";
-
-interface ColumnData {
-  id: string;
-  defaultTitle: string;
-}
+import { useTodoStore } from "@/store/todoStore";
+import {
+  DragDropContext,
+  Draggable,
+  Droppable,
+  DropResult,
+} from "@hello-pangea/dnd";
 
 export default function Home() {
-  // lazy initializer를 사용하여 초기 렌더링 시 로컬스토리지 데이터를 우선 사용하고, 없으면 3개의 컬럼으로 초기화
-  const [columns, setColumns] = useState<ColumnData[]>(() => {
-    const storedColumns = localStorage.getItem("columns");
-    if (storedColumns) {
-      try {
-        return JSON.parse(storedColumns);
-      } catch (error) {
-        console.error("컬럼 목록을 불러오는 데 실패했습니다.", error);
-      }
-    }
-    // 로컬스토리지에 저장된 데이터가 없으면 초기값으로 3개의 컬럼 생성
-    return [
-      { id: uuvid4(), defaultTitle: "할 일" },
-      { id: uuvid4(), defaultTitle: "진행 중" },
-      { id: uuvid4(), defaultTitle: "완료" },
-    ];
-  });
+  const [isMounted, setIsMounted] = useState(false);
+  const todoData = useTodoStore((state) => state.todoData);
+  const addColumn = useTodoStore((state) => state.addColumn);
+  const updateColumn = useTodoStore((state) => state.updateColumn);
+  const deleteColumn = useTodoStore((state) => state.deleteColumn);
+  const moveColumn = useTodoStore((state) => state.moveColumn);
 
-  // 컬럼 목록이 변경될 때마다 로컬스토리지에 저장
   useEffect(() => {
-    localStorage.setItem("columns", JSON.stringify(columns));
-  }, [columns]);
+    setIsMounted(true);
+  }, []);
 
-  // 새로운 컬럼 생성
-  const handleCreateColumn = () => {
-    const newColumn: ColumnData = {
-      id: uuvid4(),
-      defaultTitle: "새 컬럼",
-    };
-    setColumns((prev) => [...prev, newColumn]);
-    console.log(`새로운 컬럼이 생성되었습니다. (id: ${newColumn.id})`);
-  };
+  if (!isMounted) {
+    return null;
+  }
 
-  // 컬럼 삭제
-  const handleDeleteColumn = (id: string) => {
-    setColumns((prev) => prev.filter((column) => column.id !== id));
+  // 드래그 종료 이벤트 처리
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const { source, destination, type } = result;
+
+    // 컬럼 이동
+    if (type === "column") {
+      if (source.index !== destination.index) {
+        moveColumn(source.index, destination.index);
+      }
+      return;
+    }
+
+    // 카드 이동
+    const sourceColIndex = todoData.columns.findIndex(
+      (col) => col.id === source.droppableId
+    );
+    const destColIndex = todoData.columns.findIndex(
+      (col) => col.id === destination.droppableId
+    );
+
+    if (sourceColIndex < 0 || destColIndex < 0) return;
+
+    const newColumns = [...todoData.columns];
+    const sourceCards = [...newColumns[sourceColIndex].cards];
+    const destCards =
+      sourceColIndex === destColIndex
+        ? sourceCards
+        : [...newColumns[destColIndex].cards];
+
+    // 소스에서 카드 제거
+    const [movedCard] = sourceCards.splice(source.index, 1);
+    // 목적지에 카드 추가
+    destCards.splice(destination.index, 0, movedCard);
+
+    // 컬럼 업데이트
+    if (sourceColIndex === destColIndex) {
+      newColumns[sourceColIndex] = {
+        ...newColumns[sourceColIndex],
+        cards: sourceCards,
+      };
+    } else {
+      newColumns[sourceColIndex] = {
+        ...newColumns[sourceColIndex],
+        cards: sourceCards,
+      };
+      newColumns[destColIndex] = {
+        ...newColumns[destColIndex],
+        cards: destCards,
+      };
+    }
+
+    // 전체 상태 업데이트
+    useTodoStore.setState({ todoData: { ...todoData, columns: newColumns } });
   };
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">투두 리스트</h1>
-      <div className="flex gap-4">
-        <section className="flex gap-4 pr-2">
-          {columns.map((column) => (
-            <Column
-              key={column.id}
-              id={column.id}
-              defaultTitle={column.defaultTitle}
-              onDelete={handleDeleteColumn}
-            />
-          ))}
-          <button
-            onClick={handleCreateColumn}
-            className=" mb-4 p-2 bg-gray-100 text-white rounded w-8 h-8 hover:bg-gray-200"
-          >
-            <Image src={add} alt="추가" width={24} height={24} />
-          </button>
-        </section>
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="p-4">
+        <h1 className="text-3xl font-bold mb-4">투두 리스트</h1>
+        <Droppable droppableId="columns" direction="horizontal" type="column">
+          {(provided) => (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="flex flex-wrap gap-4"
+            >
+              {todoData.columns.map((column, index) => (
+                <Draggable
+                  key={column.id}
+                  draggableId={column.id}
+                  index={index}
+                >
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                    >
+                      <Column
+                        columnData={column}
+                        onUpdate={updateColumn}
+                        onDelete={deleteColumn}
+                      />
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+        <button
+          onClick={addColumn}
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          컬럼 추가
+        </button>
       </div>
-    </div>
+    </DragDropContext>
   );
 }
