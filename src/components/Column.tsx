@@ -81,6 +81,7 @@ const Column: React.FC<ColumnProps> = ({ columnData, onUpdate, onDelete }) => {
     const newCard = {
       id: uuidv4(),
       title: newTitle,
+      completed: false,
     };
 
     onUpdate({
@@ -100,6 +101,13 @@ const Column: React.FC<ColumnProps> = ({ columnData, onUpdate, onDelete }) => {
 
   const deleteCard = (cardId: string) => {
     const updatedCards = columnData.cards.filter((card) => card.id !== cardId);
+    onUpdate({ ...columnData, cards: updatedCards });
+  };
+
+  const toggleCardComplete = (cardId: string) => {
+    const updatedCards = columnData.cards.map((card) =>
+      card.id === cardId ? { ...card, completed: !card.completed } : card
+    );
     onUpdate({ ...columnData, cards: updatedCards });
   };
 
@@ -179,6 +187,7 @@ const Column: React.FC<ColumnProps> = ({ columnData, onUpdate, onDelete }) => {
                       cardData={card}
                       onUpdate={(newTitle) => updateCard(card.id, newTitle)}
                       onDelete={() => deleteCard(card.id)}
+                      onToggleComplete={() => toggleCardComplete(card.id)}
                     />
                   </div>
                 )}

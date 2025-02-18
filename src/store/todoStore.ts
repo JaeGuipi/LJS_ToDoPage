@@ -6,6 +6,7 @@ import { create } from "zustand";
 export interface CardData {
   id: string;
   title: string;
+  completed: boolean;
 }
 
 export interface ColumnData {

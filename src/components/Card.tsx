@@ -3,11 +3,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { CardData } from "@/store/todoStore";
 import menu from "@/../public/ic_menu.svg";
 import Image from "next/image";
+import checkCircle from "@/../public/ic_check_circle.svg";
+import checkCircleFilled from "@/../public/ic_check_circle_filled.svg";
+import inputcheck from "@/../public/ic_input_check.svg";
 
 interface CardProps {
   cardData: CardData;
   onUpdate: (newTitle: string) => void;
   onDelete: () => void;
+  onToggleComplete: () => void;
 }
 
 /**
@@ -18,7 +22,12 @@ interface CardProps {
  * - 드롭다운 메뉴를 통한 수정/삭제 기능
  * - 클릭 외부 감지를 통한 드롭다운 자동 닫기
  */
-const Card: React.FC<CardProps> = ({ cardData, onUpdate, onDelete }) => {
+const Card: React.FC<CardProps> = ({
+  cardData,
+  onUpdate,
+  onDelete,
+  onToggleComplete,
+}) => {
   // 상태 관리
   const [isEditing, setIsEditing] = useState(false);
   const [tempTitle, setTempTitle] = useState(cardData.title);
@@ -74,7 +83,7 @@ const Card: React.FC<CardProps> = ({ cardData, onUpdate, onDelete }) => {
   };
 
   return (
-    <div className="bg-white p-3 rounded shadow-sm relative h-[110px]">
+    <div className="bg-white p-3 rounded shadow-sm relative h-[110px] flex flex-col">
       {isEditing ? (
         <div className="relative w-full h-full">
           <input
@@ -90,59 +99,65 @@ const Card: React.FC<CardProps> = ({ cardData, onUpdate, onDelete }) => {
             onClick={finishEditing}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-full"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-green-500"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <Image src={inputcheck} alt="확인" />
           </button>
         </div>
       ) : (
-        <p className="w-full p-1 border-gray-300 rounded cursor-pointer h-full flex items-center">
-          {cardData.title}
-        </p>
-      )}
-
-      {isEditing ? null : (
-        <div className="absolute top-1 right-1" ref={dropdownRef}>
-          <button
-            onClick={() => setShowDropdown(!showDropdown)}
-            className="p-2 hover:bg-gray-100"
-          >
-            <Image src={menu} alt="menu" />
-          </button>
-          {showDropdown && (
-            <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded shadow-md z-10">
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={onToggleComplete}
+              className="w-[35px] h-[35px] hover:bg-gray-100 rounded-full flex items-center justify-center"
+            >
+              <Image
+                src={cardData.completed ? checkCircleFilled : checkCircle}
+                alt="complete"
+                width={20}
+                height={20}
+              />
+            </button>
+            <div className="relative" ref={dropdownRef}>
               <button
-                onClick={() => {
-                  setIsEditing(true);
-                  setShowDropdown(false);
-                }}
-                className="w-full text-center text-sm px-3 py-2 hover:bg-gray-100"
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="w-[35px] h-[35px] hover:bg-gray-100 rounded-full flex items-center justify-center"
               >
-                수정하기
+                <Image src={menu} alt="menu" width={20} height={20} />
               </button>
-              <button
-                onClick={() => {
-                  setShowDropdown(false);
-                  if (window.confirm("정말 이 카드를 삭제하시겠습니까?")) {
-                    onDelete();
-                  }
-                }}
-                className="text-red-400 w-full text-sm text-center px-3 py-2 hover:bg-gray-100"
-              >
-                삭제하기
-              </button>
+              {showDropdown && (
+                <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded shadow-md z-10">
+                  <button
+                    onClick={() => {
+                      setIsEditing(true);
+                      setShowDropdown(false);
+                    }}
+                    className="w-full text-center text-sm px-3 py-2 hover:bg-gray-100"
+                  >
+                    수정하기
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDropdown(false);
+                      if (window.confirm("정말 이 카드를 삭제하시겠습니까?")) {
+                        onDelete();
+                      }
+                    }}
+                    className="text-red-400 w-full text-sm text-center px-3 py-2 hover:bg-gray-100"
+                  >
+                    삭제하기
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+          <p
+            className={`flex-1 p-1 border-gray-300 rounded cursor-pointer line-clamp-3 overflow-hidden ${
+              cardData.completed ? "line-through text-gray-400" : ""
+            }`}
+            title={cardData.title}
+          >
+            {cardData.title}
+          </p>
+        </>
       )}
     </div>
   );
