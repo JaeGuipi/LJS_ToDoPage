@@ -18,6 +18,7 @@ export default function Home() {
   const updateColumn = useTodoStore((state) => state.updateColumn);
   const deleteColumn = useTodoStore((state) => state.deleteColumn);
   const moveColumn = useTodoStore((state) => state.moveColumn);
+  const moveCard = useTodoStore((state) => state.moveCard);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +52,7 @@ export default function Home() {
       return;
     }
 
+    // 카드 이동
     const sourceColIndex = todoData.columns.findIndex(
       (col) => col.id === source.droppableId
     );
@@ -60,33 +62,7 @@ export default function Home() {
 
     if (sourceColIndex < 0 || destColIndex < 0) return;
 
-    const newColumns = [...todoData.columns];
-    const sourceCards = [...newColumns[sourceColIndex].cards];
-    const destCards =
-      sourceColIndex === destColIndex
-        ? sourceCards
-        : [...newColumns[destColIndex].cards];
-
-    const [movedCard] = sourceCards.splice(source.index, 1);
-    destCards.splice(destination.index, 0, movedCard);
-
-    if (sourceColIndex === destColIndex) {
-      newColumns[sourceColIndex] = {
-        ...newColumns[sourceColIndex],
-        cards: sourceCards,
-      };
-    } else {
-      newColumns[sourceColIndex] = {
-        ...newColumns[sourceColIndex],
-        cards: sourceCards,
-      };
-      newColumns[destColIndex] = {
-        ...newColumns[destColIndex],
-        cards: destCards,
-      };
-    }
-
-    useTodoStore.setState({ todoData: { ...todoData, columns: newColumns } });
+    moveCard(sourceColIndex, destColIndex, source.index, destination.index);
   };
 
   return (

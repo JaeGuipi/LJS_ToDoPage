@@ -13,6 +13,14 @@ interface ColumnProps {
   onDelete: (columnId: string) => void;
 }
 
+/**
+ * Column 컴포넌트: 할일 카드들을 그룹화하여 관리하는 컬럼
+ *
+ * 주요 기능:
+ * - 컬럼 제목 관리 (표시/수정)
+ * - 카드 목록 관리 (추가/수정/삭제)
+ * - 드래그 앤 드롭 지원
+ */
 const Column: React.FC<ColumnProps> = ({ columnData, onUpdate, onDelete }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(columnData.title);
@@ -49,12 +57,41 @@ const Column: React.FC<ColumnProps> = ({ columnData, onUpdate, onDelete }) => {
     }
   };
 
+  // 카드 관리 함수들
   const addCard = () => {
-    const newCard = { id: uuidv4(), title: "새 카드" };
-    onUpdate({ ...columnData, cards: [...columnData.cards, newCard] });
+    const baseTitle = "새 카드";
+    const existingCards = columnData.cards;
+
+    // 같은 이름의 카드 찾기
+    const similarCards = existingCards.filter((card) =>
+      card.title.startsWith(baseTitle)
+    );
+
+    let newTitle = baseTitle;
+    if (similarCards.length > 0) {
+      // 기존 카드들의 번호를 추출하고 가장 큰 번호 찾기
+      const numbers = similarCards.map((card) => {
+        const match = card.title.match(/\((\d+)\)$/);
+        return match ? parseInt(match[1]) : 0;
+      });
+      const maxNumber = Math.max(...numbers, 0);
+      newTitle = `${baseTitle} (${maxNumber + 1})`;
+    }
+
+    const newCard = {
+      id: uuidv4(),
+      title: newTitle,
+    };
+
+    onUpdate({
+      ...columnData,
+      cards: [...columnData.cards, newCard],
+    });
   };
 
   const updateCard = (cardId: string, newTitle: string) => {
+    if (!newTitle.trim()) return; // 빈 제목 방지
+
     const updatedCards = columnData.cards.map((card) =>
       card.id === cardId ? { ...card, title: newTitle } : card
     );

@@ -24,12 +24,23 @@ interface TodoStore {
   addColumn: () => void;
   updateColumn: (updatedColumn: ColumnData) => void;
   deleteColumn: (columnId: string) => void;
-  addCard: (columnId: string) => void;
-  updateCard: (columnId: string, cardId: string, newTitle: string) => void;
-  deleteCard: (columnId: string, cardId: string) => void;
   moveColumn: (fromIndex: number, toIndex: number) => void;
+  moveCard: (
+    sourceColIndex: number,
+    destColIndex: number,
+    sourceIndex: number,
+    destIndex: number
+  ) => void;
 }
 
+/**
+ * Todo 관리를 위한 전역 상태 스토어
+ *
+ * 주요 기능:
+ * - 컬럼 및 카드 데이터 영구 저장
+ * - 컬럼 관리 (추가/수정/삭제/이동)
+ * - 카드 관리 (추가/수정/삭제)
+ */
 export const useTodoStore = create<TodoStore>()(
   persist(
     (set) => ({
@@ -77,47 +88,6 @@ export const useTodoStore = create<TodoStore>()(
             ),
           },
         })),
-      addCard: (columnId: string) =>
-        set((state) => ({
-          todoData: {
-            columns: state.todoData.columns.map((col) =>
-              col.id === columnId
-                ? {
-                    ...col,
-                    cards: [...col.cards, { id: uuidv4(), title: "새 카드" }],
-                  }
-                : col
-            ),
-          },
-        })),
-      updateCard: (columnId: string, cardId: string, newTitle: string) =>
-        set((state) => ({
-          todoData: {
-            columns: state.todoData.columns.map((col) =>
-              col.id === columnId
-                ? {
-                    ...col,
-                    cards: col.cards.map((card) =>
-                      card.id === cardId ? { ...card, title: newTitle } : card
-                    ),
-                  }
-                : col
-            ),
-          },
-        })),
-      deleteCard: (columnId: string, cardId: string) =>
-        set((state) => ({
-          todoData: {
-            columns: state.todoData.columns.map((col) =>
-              col.id === columnId
-                ? {
-                    ...col,
-                    cards: col.cards.filter((card) => card.id !== cardId),
-                  }
-                : col
-            ),
-          },
-        })),
       moveColumn: (fromIndex: number, toIndex: number) =>
         set((state) => {
           const columns = [...state.todoData.columns];
@@ -125,6 +95,43 @@ export const useTodoStore = create<TodoStore>()(
           columns.splice(toIndex, 0, moved);
           return {
             todoData: { ...state.todoData, columns },
+          };
+        }),
+      moveCard: (
+        sourceColIndex: number,
+        destColIndex: number,
+        sourceIndex: number,
+        destIndex: number
+      ) =>
+        set((state) => {
+          const newColumns = [...state.todoData.columns];
+          const sourceCards = [...newColumns[sourceColIndex].cards];
+          const destCards =
+            sourceColIndex === destColIndex
+              ? sourceCards
+              : [...newColumns[destColIndex].cards];
+
+          const [movedCard] = sourceCards.splice(sourceIndex, 1);
+          destCards.splice(destIndex, 0, movedCard);
+
+          if (sourceColIndex === destColIndex) {
+            newColumns[sourceColIndex] = {
+              ...newColumns[sourceColIndex],
+              cards: sourceCards,
+            };
+          } else {
+            newColumns[sourceColIndex] = {
+              ...newColumns[sourceColIndex],
+              cards: sourceCards,
+            };
+            newColumns[destColIndex] = {
+              ...newColumns[destColIndex],
+              cards: destCards,
+            };
+          }
+
+          return {
+            todoData: { ...state.todoData, columns: newColumns },
           };
         }),
     }),
