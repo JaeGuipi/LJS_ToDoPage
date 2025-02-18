@@ -173,7 +173,7 @@ const Column: React.FC<ColumnProps> = ({ columnData, onUpdate, onDelete }) => {
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className="space-y-2 flex-grow overflow-scroll [&::-webkit-scrollbar]:hidden"
+            className="space-y-2 flex-grow overflow-scroll scrollbar-hide"
           >
             {columnData.cards.map((card, index) => (
               <Draggable key={card.id} draggableId={card.id} index={index}>
