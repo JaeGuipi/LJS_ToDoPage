@@ -138,10 +138,13 @@ const Column: React.FC<ColumnProps> = ({ columnData, onUpdate, onDelete }) => {
             onClick={() => setIsEditingTitle(true)}
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold cursor-pointer">
+              <h2
+                className="text-xl font-semibold cursor-pointer truncate max-w-[250px]"
+                title={columnData.title}
+              >
                 {columnData.title}
               </h2>
-              <p className="bg-gray-100 w-5 h-5 text-center text-sm rounded-lg">
+              <p className="bg-gray-100 w-5 h-5 text-center text-sm rounded-lg flex-shrink-0">
                 {columnData.cards.length}
               </p>
             </div>
